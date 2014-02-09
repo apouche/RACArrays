@@ -10,19 +10,22 @@ Code
 
 Basically it all comes down to this part
 ```
-RACSignal* signal = [self rac_valuesAndChangesForKeyPath:@keypath(self,mutableArray)
+// this will give us old and new value for the mutableArray propery when it changes
+    RACSignal* signal = [self rac_valuesAndChangesForKeyPath:@keypath(self,mutableArray)
                                                      options:NSKeyValueObservingOptionNew|NSKeyValueObservingOptionOld
                                                     observer:self];
     
     [signal subscribeNext:^(RACTuple* tuple) {
+        // the changes dictionary is stored in the second propery of the RAC Tuple
         NSDictionary* changes = tuple.second;
         
         NSArray* oldArray = changes[NSKeyValueChangeOldKey];
         NSArray* newArray = changes[NSKeyValueChangeNewKey];
+        NSIndexPath* indexpath = nil;
         
         [self.tableview beginUpdates];
         
-        NSIndexPath* indexpath = nil;
+        // this all comes down to this comparision, here the update is animated but need not to be.
         if (newArray.count > oldArray.count) {
             indexpath = [NSIndexPath indexPathForRow:newArray.count-1 inSection:0];
             [self.tableview insertRowsAtIndexPaths:@[indexpath] withRowAnimation:UITableViewRowAnimationAutomatic];
