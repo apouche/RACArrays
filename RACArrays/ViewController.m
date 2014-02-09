@@ -6,6 +6,10 @@
 //  Copyright (c) 2014 Tutorial. All rights reserved.
 //
 
+// Frameworks
+#import <ReactiveCocoa/ReactiveCocoa.h>
+
+// Controllers
 #import "ViewController.h"
 
 @interface ViewController ()
@@ -24,7 +28,31 @@
     [super viewDidLoad];
     [self.slider addTarget:self action:@selector(onSliderValueChanged:) forControlEvents:UIControlEventValueChanged];
     self.mutableArray = [[NSMutableArray alloc] initWithCapacity:10];
-	// Do any additional setup after loading the view, typically from a nib.
+    
+    RACSignal* signal = [self rac_valuesAndChangesForKeyPath:@keypath(self,mutableArray)
+                                                     options:NSKeyValueObservingOptionNew|NSKeyValueObservingOptionOld
+                                                    observer:self];
+    
+    [signal subscribeNext:^(RACTuple* tuple) {
+        NSDictionary* changes = tuple.second;
+        
+        NSArray* oldArray = changes[NSKeyValueChangeOldKey];
+        NSArray* newArray = changes[NSKeyValueChangeNewKey];
+        
+        [self.tableview beginUpdates];
+        
+        NSIndexPath* indexpath = nil;
+        if (newArray.count > oldArray.count) {
+            indexpath = [NSIndexPath indexPathForRow:newArray.count-1 inSection:0];
+            [self.tableview insertRowsAtIndexPaths:@[indexpath] withRowAnimation:UITableViewRowAnimationAutomatic];
+        }
+        else if (newArray.count < oldArray.count) {
+            indexpath = [NSIndexPath indexPathForRow:oldArray.count-1 inSection:0];
+            [self.tableview deleteRowsAtIndexPaths:@[indexpath] withRowAnimation:UITableViewRowAnimationAutomatic];
+        }
+        
+        [self.tableview endUpdates];
+    }];
 }
 
 - (void)didReceiveMemoryWarning
@@ -36,13 +64,18 @@
 #pragma mark - Events
 
 - (void)onSliderValueChanged:(UISlider*)slider {
-    NSInteger count = (NSInteger)roundf(slider.value*10.f);
-    if (count > self.mutableArray.count)
-        [self.mutableArray addObject:[NSDate date]];
-    else if (count < self.mutableArray.count)
-        [self.mutableArray removeLastObject];
+    NSInteger count = (NSInteger)floorf(slider.value*10.f);
+    NSMutableArray* array = [NSMutableArray arrayWithArray:self.mutableArray];
     
-    [self.tableview reloadData];
+    if (count > self.mutableArray.count) {
+        [array addObject:[NSDate date]];
+    }
+    else if (count < self.mutableArray.count) {
+        [array removeLastObject];
+    }
+    
+    if (array.count != self.mutableArray.count)
+        self.mutableArray = [NSMutableArray arrayWithArray:array];
 }
 
 #pragma mark - TableView
