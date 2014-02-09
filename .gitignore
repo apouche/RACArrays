@@ -30,6 +30,11 @@ profile
 
 *~.nib
 
+####
+# Libs
+# 
+Pods/
+
 
 ####
 # Xcode build files -
